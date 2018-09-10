@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package konkordans;
 
 import java.io.File;
@@ -12,63 +7,63 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
 
 /**
- *
- * @author kaspe
+ * Konkordans inehåller funktioner för att skapa konkorddatabasen, och hashfunk-
+ * -tioner.
+ * 
+ * @author Kasper & Adam
  */
 public class Konkordans {
 
-    
+    // Alfabetet, det engelska
     private static String alphabeth = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     
+    // Kartlägger varje bokstav till ett numeriskt värde.
     static HashMap letterValue = new HashMap();
     
     
-    
     /**
-     * @param args the command line arguments
+     * Main-funktion
+     * @param args Används inte.
      */
     public static void main(String[] args) throws FileNotFoundException, IOException {
         
+        // Genomför en sökning.
+        KonkordSearch ks = new KonkordSearch("beam");
+        
+        // Kartlägger varje bokstav till ett numeriskt värde i letterValue.
         int i = 1;
         String alpha = alphabeth.toLowerCase();
         for(char c:alpha.toCharArray()){
             letterValue.put(c, i++);
         }
         
-        // TODO code application logic here
+        // Tokenkarta som repressenterar konkordfilen.
         HashMap<String, ArrayList<Token>> map = new HashMap<>();
         
-        // Create new lexer object
-        Lexer l = new Lexer("divine.txt");
+        // Lexer som ger en lista av alla tokens för orden.
+        Lexer l = new Lexer("korpus");
         
-        // Tokenizing
-        System.out.println("Tokenizing the text");
+        // Returnera tokenlista.
         ArrayList<Token> tokens = l.tokenize();
         
-        // New list object
+        // ***
         ArrayList<String> list = new ArrayList<String>();
         
-        System.out.println("Generating list of all words");
-        for(Token t:tokens){
-            //System.out.println(t.content().toLowerCase() + " @ (" + t.startIndex() + ", " + t.endIndex() + ")");
+
+        // Lägger till alla ord i listan.
+        for(Token t:tokens){           
             list.add(t.content());
         }
         
-        map = new HashMap<>();
-        
-        System.out.println("Sorting list");
+        // Sorterar listan med alla ord.
         Collections.sort(list);
         
-        System.out.println("Generating hash map of words and their tokens");
+        // Lägger till positioner till hashlistan under respektive ord.
         for(Token t:tokens){
             //System.out.println(t.content());
             if(map.containsKey(t.content())){
@@ -79,19 +74,21 @@ public class Konkordans {
             }
         }
         
-        System.out.println("Creating new file");
+        // Börjar att bygga upp konkorddatabasen med hjälp av 'map'.
         File file = new File("konkord.txt");
         file.createNewFile();
         
-        // Writer for file
+        // ***
         FileWriter writer = new FileWriter(file);
         
+        // ***
         StringBuilder sb = new StringBuilder();
         
-        System.out.println("Writing to file");
+        // ***
         ArrayList<String> leaf = new ArrayList<>();
         leaf.addAll(map.keySet());
         
+        // **
         Collections.sort(leaf);
         
         for(String s: leaf){
@@ -105,6 +102,7 @@ public class Konkordans {
             sb = new StringBuilder();
         }
         
+        // Rensa lite.
         writer.flush();
         writer.close();
         
@@ -131,18 +129,21 @@ public class Konkordans {
         // Writer for file
         FileWriter hashWriter = new FileWriter(hashFil);
         
+        //
         RandomAccessFile hashFile = new RandomAccessFile(hashFil, "rw");
         hashFile.seek(1000);
         
-        
-        
+        //
         String latestThreeCombination = null;
         
         // Generate the Latmanshashning
         long pointer = raf.getFilePointer();
-        String s = raf.readLine();        
+        String s = raf.readLine();    
+        
+        // Läs igenom hela filen.
         while(s != null){
 
+            // 
             byte[] b = trippel.toString().getBytes("ISO-8859-1");
 
             try{
@@ -154,45 +155,30 @@ public class Konkordans {
                      s = s.split(" ")[0].substring(0, 1);
                  }
             }
+            
             //beräkna hashvärdet hos de tre första bokstäverna.
             int total = 0;
             //första: 10000, andra: 200, tredje:1.
-            int[] tal = {10000, 200, 20};
+            int[] tal = {(26*26)*10, 26*10, 1*10};
+            
+            // Summerar värdena av de tre bokstäverna (s.v) 
             int count = 0;
             for(char c : s.toCharArray()) { 
                 total += (int) letterValue.get(c) * tal[count++];
             }
             
             if(!s.equals(latestThreeCombination)){
-                //System.out.println("inne i if-sats");
-                latestThreeCombination = s;
-             //s = s + " " + pointer + "\n";             
-             //System.out.println(s + ": " + raf.getFilePointer());
-             hashFile.seek(total);
-             //hashFile.write(s.getBytes("ISO-8859-1"));
-             s = "" + pointer;
-             //hashFile.write(s.getBytes());            
-             hashFile.write(longToBytes(pointer));            
+                latestThreeCombination = s;             
+                hashFile.seek(total);             
+                hashFile.writeLong(pointer);
             }
             
             pointer = raf.getFilePointer();
             s = raf.readLine();
                                
-        }
+        } 
         hashFile.seek(1000);
         System.out.println((char) hashFile.read());
-        
-        System.out.println("Done.");
-    }
-    
-    
-    /** 
-     * Genererar konkordansfilen genom input s
-     * @param s Textfilen.
-     */
-    public void generate(InputStream s){
-        // Tokenisera alla ord
-        // Gå igenom alla ord
     }
     
     /**
@@ -204,6 +190,10 @@ public class Konkordans {
     }
     
     
+    /**
+     * 
+     * @param find 
+     */
     public void koncord(String find){
         //Pick out the first three characters
         String firstThree = find.substring(0, 3);
@@ -217,16 +207,23 @@ public class Konkordans {
         
     }
 
+    /**
+     * 
+     * @param firstThree
+     * @return 
+     */
     private int hash(String firstThree) {
         throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
     
-    
+    /**
+     * 
+     * @param x
+     * @return 
+     */
     public static byte[] longToBytes(long x) {
         ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
-        buffer.putLong(x);
-    return buffer.array();
-}
-
-    
+        return buffer.putLong(x).array();
+        //return buffer.array();
+    }
 }
